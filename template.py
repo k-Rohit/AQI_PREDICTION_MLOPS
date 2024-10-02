@@ -25,10 +25,13 @@ files = [
 ]
 
 def create_directories():
-    """Create directories as per the defined structure."""
+    """Create directories as per the defined structure, with a .gitkeep file."""
     for directory in directories:
         os.makedirs(directory, exist_ok=True)
-        print(f"Created directory: {directory}")
+        gitkeep_path = os.path.join(directory, '.gitkeep')
+        with open(gitkeep_path, 'w') as f:
+            pass  # Create an empty .gitkeep file to track the directory in Git
+        print(f"Created directory and .gitkeep file: {directory}")
 
 def create_files():
     """Create empty files as per the defined structure."""
