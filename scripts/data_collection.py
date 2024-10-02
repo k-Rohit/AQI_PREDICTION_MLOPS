@@ -4,6 +4,13 @@ import os
 from datetime import datetime, timedelta
 import time
 import yaml
+from azureml.core import Workspace, Dataset, Datastore
+
+# Connect to Azure ML Workspace
+ws = Workspace.from_config('config/config.json')
+
+# Get default datastore (Azure Blob Storage)
+datastore = Datastore.get(ws, datastore_name='workspaceblobstore')
 
 # Load API key from config
 def load_api_key(config_path):
@@ -22,13 +29,18 @@ def fetch_openweather_historical_data(lat, lon, start_date, end_date, api_key):
         print(f"Error fetching data from OpenWeather API (historical): {response.status_code}")
         return None
 
-# Save data to a folder
+# Save data to a folder and upload to Azure Blob Storage
 def save_data(data, filename, output_dir):
     if data:
         os.makedirs(output_dir, exist_ok=True)
-        with open(os.path.join(output_dir, filename), 'w') as f:
+        local_path = os.path.join(output_dir, filename)
+        with open(local_path, 'w') as f:
             json.dump(data, f)
-        print(f"Data saved to {filename}")
+        print(f"Data saved locally to {local_path}")
+        
+        # Upload to Azure Blob Storage
+        datastore.upload_files([local_path], target_path='aqi_data/', overwrite=True)
+        print(f"Data uploaded to Azure Blob Storage as {filename}")
     else:
         print(f"No data to save for {filename}")
 
@@ -46,7 +58,7 @@ if __name__ == "__main__":
     end_date = datetime.now()
     start_date = end_date - timedelta(days=365)
     
-    output_dir = './data/raw'  # Use a relative path to store the data
+    output_dir = './data/raw'  # Use a relative path to store the data locally
 
     # Fetch historical data day by day for the past year
     for single_date in (start_date + timedelta(n) for n in range(365)):
